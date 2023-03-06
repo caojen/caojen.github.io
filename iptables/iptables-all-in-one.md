@@ -48,7 +48,7 @@ iptables -A INPUT \
     -p tcp -s 1.2.3.0/24 -j DROP
 ```
 
-第一行暂时跳过，我们从第二行开始。
+> 第一行暂时跳过，我们从第二行开始。
 
 首先，`-p`参数指明`Protocal`为TCP协议；`-s`指明`Source`，可以是IP段或IP地址，`-j`表示Target，这里是`DROP`.
 
@@ -60,7 +60,6 @@ iptables -A INPUT \
 iptables -A INPUT \
     -p tcp -s 1.2.3.4 --dport 2222 -j ACCEPT
 ```
-第一行暂时跳过，我们仍然从第二行开始。
 
 与第一个例子不同的是，使用`--dport`参数表明**目标端口**，注意这个**目标**其实就是当前主机。
 
