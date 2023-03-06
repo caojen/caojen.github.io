@@ -75,10 +75,131 @@ Clain本质上是一个包含Rules的链表，这种Clain有五种：
 4. PREROUTING链：当报文到达时，尝试修改目标IP地址；
 5. POSTROUTING链：当报文即将离开时，尝试修改源IP地址。
 
+先来考虑两个比较简单的链：`INPUT`, `OUTPUT`。其他链我们在后续的章节中再慢慢介绍。
+
+此外，我们可以自定义链(`Custom Clains`)。自定义链可以理解成是一个我们自己写的函数，把所有规则放在一起，方便复用和组织。
+
 ### Rules在Clain中的表现
 
-我们不妨执行以下上一节中的两条语句：
+我们不妨执行上一节中的两条命令：
 ```
 iptables -A INPUT -p tcp -s 1.2.3.0/24 -j DROP
 iptables -A INPUT -p tcp -s 1.2.3.4 --dport 2222 -j ACCEPT
 ```
+
+然后使用下面的命令：
+```
+iptables -L 
+```
+
+你可以看到类似下图的结果：
+![](images/iptables-2.png)
+
+目前我们无需关注其他内容，请看到`Clain INPUT`.
+
+可以发现，两条Rule就按照添加的顺序列在下面。从上到下，代表的就是链表的从头到尾的顺序。在链表末尾有一个“默认目标”，也就是`ACCEPT` (由`policy ACCEPT`指定)。如下图所示：
+
+```
+TODO: add a graph
+```
+
+#### 例子1
+
+现在假设源IP为`1.2.3.88`的主机以HTTP/TCP协议访问本机器的`8080`端口，请问可以放行吗？
+
+> 答：不可以。第一条规则规定，来自于`1.2.3.0/24`域的所有流量都会被`DROP`。且由于是`DROP`，甚至不会返回“为什么无法连接”的错误信息。
+
+#### 例子2
+
+可以看到规则2指明，`1.2.3.4`可以用TCP协议访问`22`端口。那么源IP为`1.2.3.4`尝试ssh连接`22`端口可行吗？
+
+> 答：不可以。虽然规则2允许，但是请注意这是一个链表。规则1会被先匹配成功，然后`DROP`.
+
+#### 例子3
+
+源IP`8.8.8.8`可以访问本机的443端口吗？
+
+> 答：可以。由于不匹配所有规则，因此命中了Clain的默认规则：`ACCEPT`.
+
+请注意，以上的所有例子都是只针对`INPUT`链的。如果报文能进入(被`INPUT` `ACCEPT`了)，但是没法出去(没有被`OUTPUT ACCEPT`)，通信也没法完成。
+
+那么Clains之间是怎么配合的呢，就涉及到我们接下来要讲解的内容：表(Table)
+
+## 表(Tables)
+
+Table是一个Clains的集合。在Iptables中，表是有优先级的（报文先被那个表处理），每个表都有自己的默认Clains。按照优先级顺序，列举如下：
+1. Raw表：处理状态跟踪（用得少）；
+   1. OUTPUT链；
+   2. PREROUTING链；
+2. Mangle表：修改TTL等信息（用得少）；
+   1. PREROUTING链；
+   2. POSTROUTING链；
+   3. INPUT链；
+   4. OUTPUT链；
+   5. FORWARD链；
+3. NAT表：用作地址转换；
+   1. PREROUTING链；
+   2. POSTROUTING链；
+   3. OUTPUT链；
+4. Filter表：
+   1. INPUT链；
+   2. FORWARD链；
+   3. OUTPUT链；
+
+当一个报文进来的时候，会根据入站还是出站来应用链的顺序。再同一个链之间，会以表的顺序来作为优先级。
+
+举个例子，假设现在要应用INPUT链。由于`Mangle, NAT, Fitler`表都有INPUT链，那么应用的顺序是`Mangle -> NAT -> Filter`.
+
+### 入站报文
+1. PREROUTING检测是否需要转发？
+2. 如果不需要转发，交给INPUT链；
+3. 如果需要转发，先给FORWARD链判断是否拦截？如果放行，那么交给POSTROUTING链决定是否改报文的其他内容。
+
+因此，入站报文经历的完整生命周期是：
+```
+
+Mangle.PreRouting -> NAT.PreRouting ->
+
+(不转发) -> Mangle.Input -> Filter.Input
+
+(转发) 
+    -> Filter.Forward -> 
+    -> Raw.PostRouting -> Mangle.PostRouting -> NAT.PostRouting
+
+```
+
+### 出站报文
+1. 先通过OUTPUT链处理；
+2. 在由POSTROUTING链处理。
+
+因此，出站报文的完整生命周期是：
+```
+
+Raw.Output -> Mangle.Output -> NAT.Output -> Filter.Output ->
+
+Mangle.PostRouting -> NAT.PostRouting
+
+```
+
+请注意，在使用Iptables时，**默认指定Filter表**，如果需要指定其他表，需要加入`-t table`参数。
+
+为了简单期间，我们仍然只使用Filter表。下面我们接着来执行一些命令：
+
+```
+iptables -t filter \
+    -I INPUT -s 9.9.9.0/24 -p tcp -j ACCEPT
+
+iptables -t filter \
+    -A OUTPUT -d 9.9.9.1 -p tcp -j DROP
+```
+
+上面两条指令，我们指定了表Filter（其实不指定也没关系，默认就是Filter），首先在`INPUT`链**前**追加了一条规则，允许`9.9.9.0/24`的TCP报文，然后在`OUTPUT`链**后**追加了一条规则，不允许目标IP是`9.9.9.1`的TCP报文。
+
+其中`-I`参数表示追加Rule到Clain的前面，`-A`则表示追加到后面。
+
+现在，整个Filter表就变成这样了：
+
+![](images/iptables-3.png)
+
+## 总结
+本文讲解了Rule、Clain、Table的基本概念，并用最简单的`INPUT`和`OUTPUT`做了例子。
