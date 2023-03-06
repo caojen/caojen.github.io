@@ -1,3 +1,3 @@
 # index
 
-1. [Iptables 实践](iptables/index.md)
+1. [iptables 实践](iptables/index.md)
