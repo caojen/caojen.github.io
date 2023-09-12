@@ -211,3 +211,5 @@ echo "source <(kubectl completion bash)" >> ~/.bashrc # add autocomplete permane
 在新节点上输入join命令即可。
 
 可以通过`kubectl get nodes`查看新节点，status为ready即代表成功.
+
+目前我创建了1主2从，之后可以搞3主多从的。
