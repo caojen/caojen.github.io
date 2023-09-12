@@ -209,3 +209,5 @@ echo "source <(kubectl completion bash)" >> ~/.bashrc # add autocomplete permane
 启动一台新节点，确保新节点和已有的节点能够互相访问。然后，安装`containerd`,`kubectl`,`kubelet`,`kubeadm`，关闭分区交换等。（也就是把上面的流程再走一遍，除了最后的`kubeadm init`）
 
 在新节点上输入join命令即可。
+
+可以通过`kubectl get nodes`查看新节点，status为ready即代表成功.
