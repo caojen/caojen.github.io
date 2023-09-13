@@ -109,6 +109,14 @@ sudo apt-mark hold kubelet kubeadm kubectl
 kubeadm init --pod-network-cidr=10.244.0.0/16
 ```
 
+```bash
+# 多节点部署，需要预先设置好load balancer
+kubeadm init \
+  --control-plane-endpoint "kube-apiserver-a69bf1bb5f0a739b.elb.us-east-2.amazonaws.com:6443" \
+  --upload-certs \
+  --pod-network-cidr=10.244.0.0/16
+```
+
 > note: 这里的错误可能是千奇百怪的。比如说我这里用containerd作运行时的话，就需要重启containerd。善用搜索引擎。
 >
 > 如果出了一些奇怪的错，还搜不到的话，就reset重试几次。
