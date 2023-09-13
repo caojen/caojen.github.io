@@ -145,6 +145,39 @@ kubeadm join 172.31.37.52:6443 --token 27r6xo.4wpm8a6210y8gubk \
         --discovery-token-ca-cert-hash sha256:ad70ebb0b32ac74481d2230ba11805df56127410fd7554688843e3b888814d4f
 ```
 
+```
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of the control-plane node running the following command on each as root:
+
+  kubeadm join kube-apiserver-a69bf1bb5f0a739b.elb.us-east-2.amazonaws.com:6443 --token 8cspzh.5uiwty9nav74noz6 \
+        --discovery-token-ca-cert-hash sha256:d95b0253897e8682e743a61de65cdae3eacd4557dbbc7a09da006d8e2b8a13b4 \
+        --control-plane --certificate-key cfef6d6f7df62664fec7bda3cdc91749bd80355bd99cb8c818794272b7cb15c2
+
+Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
+"kubeadm init phase upload-certs --upload-certs" to reload certs afterward.
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join kube-apiserver-a69bf1bb5f0a739b.elb.us-east-2.amazonaws.com:6443 --token 8cspzh.5uiwty9nav74noz6 \
+        --discovery-token-ca-cert-hash sha256:d95b0253897e8682e743a61de65cdae3eacd4557dbbc7a09da006d8e2b8a13b4
+```
+
 跟着他的指引，root和普通用户都需要跑一些命令。
 
 然后`kubectl get pods --all-namespaces -o wide`命令尝试一下，应该还是报错。**这里一定要等两三分钟再试，前期初始化时容易报错**。
